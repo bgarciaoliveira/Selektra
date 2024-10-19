@@ -1,0 +1,296 @@
+// src/XPathSelectorGenerator.ts
+
+import { Options, SelectorPart } from './types';
+import { Strategy } from './strategies/Strategy';
+import {
+  IdStrategy,
+  AttributeStrategy,
+  ClassStrategy,
+  TagStrategy,
+  NthChildStrategy,
+} from './strategies/xpath';
+import { DomUtils, Logger } from './utils';
+
+/**
+ * Generates a unique XPath selector for a given DOM element.
+ */
+export class XPathSelectorGenerator {
+  private options: Options;
+  private strategies: Strategy[];
+  private rootDocument: Document | Element;
+  private startTime: number;
+  private uniquenessCache: Map<string, boolean> = new Map();
+  private targetElement!: Element;
+  private logger: Logger;
+
+  /**
+   * Constructs an instance of XPathSelectorGenerator with the specified options.
+   * @param options Partial options to customize the behavior of the selector generator.
+   */
+  constructor(options?: Partial<Options>) {
+    const defaultOptions: Options = {
+      root: document.body,
+      idName: () => true,
+      className: () => true,
+      tagName: () => true,
+      attr: () => false,
+      seedMinLength: 1,
+      optimizedMinLength: 2,
+      maxCandidates: 1000,
+      maxCombinations: 10000,
+      timeoutMs: undefined,
+      maxDepth: undefined,
+      debug: false, // Added debug option
+    };
+
+    this.options = { ...defaultOptions, ...options };
+    this.logger = new Logger(this.options.debug);
+    this.rootDocument = DomUtils.findRootDocument(this.options.root);
+    this.startTime = Date.now();
+
+    this.strategies = [
+      new IdStrategy(this.options),
+      new AttributeStrategy(this.options),
+      new ClassStrategy(this.options),
+      new TagStrategy(this.options),
+      new NthChildStrategy(),
+    ];
+  }
+
+  /**
+   * Generates a unique XPath selector for the provided element.
+   * @param element The DOM element for which to generate an XPath selector.
+   * @returns A unique XPath selector string.
+   * @throws Will throw an error if a unique XPath cannot be generated.
+   */
+  public generate(element: Element): string {
+    if (element.nodeType !== Node.ELEMENT_NODE) {
+      this.logger.log(`Invalid node type: ${element.nodeType}`);
+      throw new Error('Cannot generate XPath for non-element nodes.');
+    }
+
+    this.targetElement = element;
+    this.logger.log(`Starting XPath generation for element: ${element.tagName.toLowerCase()}`);
+
+    const path = this.buildPath(element);
+    this.logger.log(`Initial path: ${JSON.stringify(path.map(p => p.name))}`);
+
+    const optimizedPath = this.optimizePath(path, element);
+    this.logger.log(`Optimized path: ${JSON.stringify(optimizedPath.map(p => p.name))}`);
+
+    const xpath = this.buildXPath(optimizedPath);
+    this.logger.log(`Generated XPath: ${xpath}`);
+
+    return xpath;
+  }
+
+  /**
+   * Builds the initial XPath by traversing from the element up to the root.
+   * @param element The starting element for path building.
+   * @returns An array of SelectorPart objects representing the XPath.
+   */
+  private buildPath(element: Element): SelectorPart[] {
+    let currentElement: Element | null = element;
+    const path: SelectorPart[] = [];
+    let depth = 0;
+
+    while (currentElement && currentElement !== this.options.root.parentElement) {
+      this.checkTimeout();
+
+      if (this.options.maxDepth !== undefined && depth > this.options.maxDepth) {
+        this.logger.log(
+          `Max depth of ${this.options.maxDepth} reached at element: ${currentElement.tagName.toLowerCase()}`
+        );
+        break;
+      }
+
+      this.logger.log(`Applying strategies at depth ${depth} for element: ${currentElement.tagName.toLowerCase()}`);
+
+      const parts = this.applyStrategies(currentElement);
+      if (parts.length > 0) {
+        const part = parts[0];
+        this.logger.log(`Strategy found part: ${part.name}`);
+        path.unshift(part);
+
+        if (this.isUnique(path)) {
+          this.logger.log(`Unique path found: ${this.buildXPath(path)}`);
+          return path;
+        }
+      } else {
+        this.logger.log(`No strategies could generate a part for element: ${currentElement.tagName.toLowerCase()}`);
+        // Use a wildcard node
+        const wildcardPart: SelectorPart = {
+          name: '*',
+          penalty: 3,
+          level: DomUtils.getElementLevel(currentElement, this.options.root),
+        };
+        path.unshift(wildcardPart);
+      }
+
+      currentElement = currentElement.parentElement;
+      depth++;
+    }
+
+    if (this.isUnique(path)) {
+      this.logger.log(`Unique path found after traversal: ${this.buildXPath(path)}`);
+      return path;
+    }
+
+    this.logger.log('Unable to generate a unique XPath after full traversal.');
+    throw new Error('Unable to generate a unique XPath.');
+  }
+
+  /**
+   * Applies the configured strategies to generate selector parts for the given element.
+   * @param element The element to process with strategies.
+   * @returns An array of SelectorPart objects generated by the strategies.
+   */
+  private applyStrategies(element: Element): SelectorPart[] {
+    const parts: SelectorPart[] = [];
+
+    for (const strategy of this.strategies) {
+      const result = strategy.generate(element);
+      if (result) {
+        result.level = DomUtils.getElementLevel(element, this.options.root);
+        this.logger.log(`Strategy ${strategy.constructor.name} generated part: ${result.name}`);
+        parts.push(result);
+        break; // Use the first valid strategy per element
+      }
+    }
+
+    if (parts.length === 0) {
+      this.logger.log(`No strategies could generate a part for element: ${element.tagName.toLowerCase()}`);
+    }
+
+    return parts;
+  }
+
+  /**
+   * Optimizes the XPath by removing redundant parts while ensuring the selector remains unique.
+   * @param path The initial XPath to optimize.
+   * @param element The target element for which the XPath is generated.
+   * @returns The optimized XPath.
+   */
+  private optimizePath(path: SelectorPart[], element: Element): SelectorPart[] {
+    if (path.length <= this.options.optimizedMinLength) {
+      this.logger.log('Path length is less than or equal to optimizedMinLength; skipping optimization.');
+      return path;
+    }
+
+    let optimizedPath = path.slice();
+
+    this.logger.log(`Starting optimization with path: ${JSON.stringify(optimizedPath.map(p => p.name))}`);
+
+    // Sort parts by penalty in descending order
+    optimizedPath.sort((a, b) => b.penalty - a.penalty);
+
+    for (let i = 0; i < optimizedPath.length - 1; i++) {
+      this.checkTimeout();
+
+      const testPath = optimizedPath.slice();
+      const removedPart = testPath.splice(i, 1)[0];
+
+      this.logger.log(`Testing path without part "${removedPart.name}": ${JSON.stringify(testPath.map(p => p.name))}`);
+
+      if (this.isUnique(testPath) && this.matches(element, testPath)) {
+        this.logger.log(`Path is still unique without "${removedPart.name}". Removing it.`);
+        optimizedPath = testPath;
+        i--; // Adjust index after removal
+      } else {
+        this.logger.log(`Path without "${removedPart.name}" is not unique. Keeping it.`);
+      }
+    }
+
+    // Restore original order based on levels
+    optimizedPath.sort((a, b) => a.level! - b.level!);
+
+    this.logger.log(`Optimization complete. Optimized path: ${JSON.stringify(optimizedPath.map(p => p.name))}`);
+
+    return optimizedPath;
+  }
+
+  /**
+   * Determines if the provided XPath uniquely identifies the target element.
+   * @param path The XPath parts to test.
+   * @returns True if the XPath is unique; otherwise, false.
+   */
+  private isUnique(path: SelectorPart[]): boolean {
+    const xpath = this.buildXPath(path);
+
+    if (this.uniquenessCache.has(xpath)) {
+      const cachedResult = this.uniquenessCache.get(xpath)!;
+      this.logger.log(`XPath "${xpath}" uniqueness retrieved from cache: ${cachedResult}`);
+      return cachedResult;
+    }
+
+    const context = this.rootDocument instanceof Document
+      ? this.rootDocument
+      : this.rootDocument.ownerDocument!;
+
+    const result = context.evaluate(
+      xpath,
+      this.rootDocument,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      null
+    );
+
+    const matchCount = result.snapshotLength;
+    const isUnique = matchCount === 1 && result.snapshotItem(0) === this.targetElement;
+
+    this.logger.log(`XPath "${xpath}" matches ${matchCount} elements. Is unique: ${isUnique}`);
+
+    this.uniquenessCache.set(xpath, isUnique);
+    return isUnique;
+  }
+
+  /**
+   * Checks if the XPath matches the target element.
+   * @param element The target element.
+   * @param path The XPath parts to test.
+   * @returns True if the XPath matches the element; otherwise, false.
+   */
+  private matches(element: Element, path: SelectorPart[]): boolean {
+    const xpath = this.buildXPath(path);
+    const context = this.rootDocument instanceof Document
+      ? this.rootDocument
+      : this.rootDocument.ownerDocument!;
+
+    const result = context.evaluate(
+      xpath,
+      this.rootDocument,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    );
+
+    const matches = result.singleNodeValue === element;
+    this.logger.log(`Testing if XPath "${xpath}" matches the target element: ${matches}`);
+    return matches;
+  }
+
+  /**
+   * Builds the final XPath string from the selector parts.
+   * @param parts An array of SelectorPart objects.
+   * @returns The XPath string.
+   */
+  private buildXPath(parts: SelectorPart[]): string {
+    const xpathParts = parts.map(part => part.name);
+    const xpath = '/' + xpathParts.join('/');
+    return xpath;
+  }
+
+  /**
+   * Checks if the operation has exceeded the specified timeout duration.
+   * @throws Will throw an error if the timeout has been exceeded.
+   */
+  private checkTimeout(): void {
+    if (this.options.timeoutMs !== undefined) {
+      const elapsedTime = Date.now() - this.startTime;
+      if (elapsedTime > this.options.timeoutMs) {
+        this.logger.log(`Timeout of ${this.options.timeoutMs}ms exceeded.`);
+        throw new Error(`Timeout: Unable to generate XPath within ${this.options.timeoutMs}ms.`);
+      }
+    }
+  }
+}
