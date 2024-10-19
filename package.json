@@ -1,10 +1,13 @@
 {
+  "author": "bgarciaolivera",
   "name": "dom-selector-generator",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "files": [
-    "dist/**/*"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build:cjs": "tsc --module commonjs --outDir dist/cjs",
@@ -15,9 +18,29 @@
     "format": "prettier --write 'src/**/*.{js,ts}'",
     "test": "jest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "css-selector",
+    "web-scraping",
+    "xpath",
+    "browser-automation",
+    "xpath-selector",
+    "dom-selector",
+    "dom-utils",
+    "css-selector-generator",
+    "xpath-selector-generator",
+    "dom-selector-generator",
+    "element-selection",
+    "element-selection-generator",
+    "element-selection-builder",
+    "selector-optimization",
+    "selector-builder"
+  ],
+  
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bgarciaoliveira/dom-selector-generator.git"
+  },
+  "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.12.0",
     "@types/jest": "^29.5.13",
@@ -35,5 +58,9 @@
     "typedoc": "^0.26.10",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.10.0"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/bgarciaoliveira/dom-selector-generator/issues"
+  },
+  "homepage": "https://github.com/bgarciaoliveira/dom-selector-generator#readme"
 }
