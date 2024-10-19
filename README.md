@@ -1,4 +1,4 @@
-# CSS and XPath Selector Generator
+# Selektra
 
 Easily generate unique and optimized CSS or XPath selectors for any DOM element.
 
@@ -20,7 +20,7 @@ This library provides tools to generate unique CSS and XPath selectors for DOM e
 Install via npm:
 
 ```bash
-npm install dom-selector-generator
+npm install selektra
 ```
 
 ## Usage
@@ -32,19 +32,19 @@ The library is compatible with both CommonJS and ES6 module systems.
 #### Using ES6 `import`
 
 ```javascript
-import { CSSSelectorGenerator, XPathSelectorGenerator } from 'dom-selector-generator';
+import { CSSSelectorGenerator, XPathSelectorGenerator } from 'selektra';
 ```
 
 #### Using CommonJS `require`
 
 ```javascript
-const { CSSSelectorGenerator, XPathSelectorGenerator } = require('dom-selector-generator');
+const { CSSSelectorGenerator, XPathSelectorGenerator } = require('selektra');
 ```
 
 ### CSS Selector Generation
 
 ```javascript
-import { CSSSelectorGenerator } from 'dom-selector-generator';
+import { CSSSelectorGenerator } from 'selektra';
 
 // Initialize the generator with optional configurations
 const generator = new CSSSelectorGenerator({
@@ -64,7 +64,7 @@ console.log('Generated CSS selector:', selector);
 ### XPath Selector Generation
 
 ```javascript
-import { XPathSelectorGenerator } from 'dom-selector-generator';
+import { XPathSelectorGenerator } from 'selektra';
 
 // Initialize the generator with optional configurations
 const generator = new XPathSelectorGenerator({
@@ -87,7 +87,7 @@ You can also use this library with Puppeteer to generate selectors for elements 
 
 ```javascript
 const puppeteer = require('puppeteer');
-const { CSSSelectorGenerator } = require('dom-selector-generator');
+const { CSSSelectorGenerator } = require('selektra');
 
 (async () => {
   const browser = await puppeteer.launch();
@@ -236,7 +236,7 @@ The library is designed to work seamlessly with different module systems:
 ### Example with `require`
 
 ```javascript
-const { CSSSelectorGenerator } = require('dom-selector-generator');
+const { CSSSelectorGenerator } = require('selektra');
 
 const generator = new CSSSelectorGenerator();
 
