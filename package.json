@@ -1,9 +1,11 @@
 {
-  "author": "bgarciaolivera",
+  "author": "bgarciaoliveira",
   "name": "dom-selector-generator",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "build/types/index.d.ts",
   "files": [
     "dist",
     "README.md",

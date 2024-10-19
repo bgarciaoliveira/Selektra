@@ -1,4 +1,5 @@
 
+import { CSSSelectorGenerator } from "./CSSSelectorGenerator";
+import { XPathSelectorGenerator } from "./XPathSelectorGenerator";
 
-
-console.log("Hello World");
+export { CSSSelectorGenerator, XPathSelectorGenerator };
