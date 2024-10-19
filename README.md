@@ -81,6 +81,38 @@ const xpath = generator.generate(element);
 console.log('Generated XPath selector:', xpath);
 ```
 
+### Using with Puppeteer
+
+You can also use this library with Puppeteer to generate selectors for elements on a webpage. Here's an example:
+
+```javascript
+const puppeteer = require('puppeteer');
+const { CSSSelectorGenerator } = require('dom-selector-generator');
+
+(async () => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto('https://example.com');
+
+  // Use Puppeteer's page.evaluate to interact with the DOM
+  const selector = await page.evaluate(() => {
+    const generator = new CSSSelectorGenerator({
+      debug: true, // Enable debug logs
+    });
+
+    // Select your target element
+    const element = document.querySelector('h1');
+
+    // Generate a unique CSS selector
+    return generator.generate(element);
+  });
+
+  console.log('Generated CSS selector:', selector);
+
+  await browser.close();
+})();
+```
+
 ## Configuration Options
 
 Both `CSSSelectorGenerator` and `XPathSelectorGenerator` accept an options object to customize their behavior:
