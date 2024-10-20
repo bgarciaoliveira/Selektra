@@ -29,7 +29,7 @@ export class CSSSelectorGenerator {
    */
   constructor(options?: Partial<Options>) {
     const defaultOptions: Options = {
-      root: document?.body,
+      root: document?.body ?? undefined,
       htmlContent: undefined,
       idName: () => true,
       className: () => true,
