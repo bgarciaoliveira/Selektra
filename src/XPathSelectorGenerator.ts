@@ -30,6 +30,7 @@ export class XPathSelectorGenerator {
   constructor(options?: Partial<Options>) {
     const defaultOptions: Options = {
       root: document.body,
+      htmlContent: undefined,
       idName: () => true,
       className: () => true,
       tagName: () => true,
@@ -45,7 +46,7 @@ export class XPathSelectorGenerator {
 
     this.options = { ...defaultOptions, ...options };
     this.logger = new Logger(this.options.debug);
-    this.rootDocument = DomUtils.findRootDocument(this.options.root);
+    this.rootDocument = DomUtils.findRootDocument(this.options.root, this.options.htmlContent);
     this.startTime = Date.now();
 
     this.strategies = [

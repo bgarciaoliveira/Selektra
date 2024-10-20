@@ -39,7 +39,6 @@
     "selector-optimization",
     "selector-builder"
   ],
-  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bgarciaoliveira/selektra.git"
@@ -66,5 +65,8 @@
   "bugs": {
     "url": "https://github.com/bgarciaoliveira/selektra/issues"
   },
-  "homepage": "https://github.com/bgarciaoliveira/selektra#readme"
+  "homepage": "https://github.com/bgarciaoliveira/selektra#readme",
+  "dependencies": {
+    "linkedom": "^0.18.5"
+  }
 }

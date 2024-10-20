@@ -6,7 +6,12 @@ export interface Options {
      * Can be a Document or Element.
      */
     root: Document | Element;
-  
+
+    /**
+     * The HTML content to be used for the selector generation.
+     */
+    htmlContent?: string;
+
     /**
      * Function to filter IDs that can be used in the selector.
      * Receives the ID as a string and returns a boolean.
