@@ -1,11 +1,11 @@
 {
   "author": "bgarciaoliveira",
   "name": "selektra",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
-  "types": "build/types/index.d.ts",
+  "types": "dist/types/index.d.ts",
   "files": [
     "dist",
     "README.md",
