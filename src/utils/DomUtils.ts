@@ -9,7 +9,11 @@ export class DomUtils {
    */
   public static findRootDocument(rootNode: Document | Element, htmlContent?: string): Document | Element {
 
-    if (htmlContent) {
+    if(!rootNode){
+      if (!htmlContent) {
+        throw new Error('htmlContent is required when rootNode is not provided or the environment is not a browser');
+      }
+
       const { document } = parseHTML(htmlContent);
       return document;
     }
